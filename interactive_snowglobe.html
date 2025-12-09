@@ -1,0 +1,275 @@
+<!--
+Interactive Snow-Globe — single-file HTML
+How to use:
+1) Put this file and a folder named "images" together (same directory).
+2) Add your pictures into ./images named img1.jpg, img2.jpg, ... imgN.jpg (any extension .jpg/.png allowed).
+   - Make sure you update the IMAGES_COUNT constant in the script tag below if you use a different number.
+3) Host the folder (index file) on GitHub Pages / Netlify / Vercel or any static hosting.
+4) Point a QR-code to the hosted URL.
+
+Notes:
+- Mobile: shake detection uses DeviceMotionEvent; user may be prompted to allow motion access on iOS.
+- Fallback: tap the globe to trigger effect.
+- To change texts, colors or globe artwork, edit the CSS/HTML within.
+
+---
+Developed for a "Secret Santa" interactive postcard: shake phone (or tap) -> snow animation + random image from images/ appears.
+-->
+
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Секретный Снеговик — Тайный Санта</title>
+  <style>
+    :root{
+      --bg: #071228;
+      --card: linear-gradient(180deg,#0b2b4a 0%, #07203a 100%);
+      --accent: #ffd166;
+      --glass-size: min(78vmin,420px);
+      --snow-size: calc(var(--glass-size) * 0.98);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color: #e6eef8;
+    }
+    html,body{height:100%;margin:0}
+    body{
+      display:flex;align-items:center;justify-content:center;
+      background: radial-gradient(circle at 10% 10%, #0b2a4a 0%, var(--bg) 30%), #021220;
+      padding:24px;box-sizing:border-box;
+    }
+
+    .wrap{
+      width:100%;max-width:980px;display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start;
+    }
+
+    .card{
+      background:var(--card);border-radius:16px;padding:24px;box-shadow:0 8px 30px rgba(2,8,23,0.6);min-height:420px;
+    }
+
+    h1{margin:0 0 12px 0;font-size:20px}
+    p.lead{margin:0 0 18px 0;opacity:0.9}
+
+    /* Globe area */
+    .globe-stage{display:flex;align-items:center;justify-content:center;padding:14px}
+    .globe{
+      width:var(--glass-size);height:var(--glass-size);position:relative;border-radius:50%;overflow:hidden;
+      display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.06), rgba(255,255,255,0.02) 20%), rgba(255,255,255,0.02);
+      box-shadow: inset 0 -14px 30px rgba(2,4,10,0.6), 0 12px 40px rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* inner content where images will be shown */
+    .globe-inner{position:relative;width:88%;height:78%;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .globe-inner img{max-width:110%;max-height:110%;object-fit:cover;display:block;transform:scale(0.96);transition:opacity .4s ease, transform .6s cubic-bezier(.2,.9,.2,1)}
+
+    /* snow layer */
+    .snow-layer{pointer-events:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:var(--snow-size);height:var(--snow-size);overflow:hidden}
+    .flake{position:absolute;top:-10%;left:0;width:6px;height:6px;border-radius:50%;opacity:.9;animation:fall var(--dur) linear infinite;filter:blur(.2px)}
+    @keyframes fall{to{transform:translateY(120vh) translateX(12vw);opacity:0}}
+
+    /* shaking animation */
+    .shaking{animation:shake 800ms ease-in-out}
+    @keyframes shake{20%{transform:translateX(-6px) rotate(-2deg)}40%{transform:translateX(6px) rotate(2deg)}60%{transform:translateX(-4px) rotate(-1deg)}80%{transform:translateX(2px) rotate(1deg)}100%{transform:translateX(0) rotate(0)}}
+
+    /* small UI */
+    .hint{margin-top:12px;font-size:13px;opacity:.9}
+    .controls{display:flex;gap:8px;margin-top:14px}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.08);padding:8px 12px;border-radius:10px;color:inherit;cursor:pointer}
+    .right-panel{display:flex;flex-direction:column;gap:12px}
+    .preview-box{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:12px}
+
+    footer{grid-column:1/-1;margin-top:12px;color:rgba(230,238,248,0.6);font-size:13px}
+
+    /* responsive */
+    @media (max-width:900px){
+      .wrap{grid-template-columns:1fr;}
+      .right-panel{order:-1}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Тайный Санта — Открытка</h1>
+      <p class="lead">Потряси телефон или нажми на шар — внутри появится сюрприз!</p>
+
+      <div class="globe-stage">
+        <div id="globe" class="globe" role="button" tabindex="0" title="Нажми или потряси">
+          <div class="globe-inner" id="globeInner">
+            <!-- image inserted here -->
+            <img id="mainImage" src="images/placeholder.png" alt="подарок" style="opacity:0">
+          </div>
+
+          <div id="snowLayer" class="snow-layer" aria-hidden="true"></div>
+
+        </div>
+      </div>
+
+      <div class="hint">Если ничего не происходит — нажми на шар или кнопку «Потрясти».</div>
+      <div class="controls">
+        <button id="shakeBtn" class="btn">Потрясти</button>
+        <button id="allowMotion" class="btn">Включить доступ к датчику движения</button>
+      </div>
+
+    </div>
+
+    <div class="right-panel">
+      <div class="preview-box">
+        <strong>Инструкция (для тебя, создавшего):</strong>
+        <ol style="padding-left:18px;margin:8px 0">
+          <li>Создай папку <code>images</code> рядом с этим файлом и положи туда картинки: <code>img1.jpg</code>, <code>img2.jpg</code> ...</li>
+          <li>Если хочешь, замени <code>placeholder.png</code> — это превью пока не показано изображение.</li>
+          <li>Загрузи на GitHub Pages / Netlify / Vercel — ссылка будет рабочей. Сгенерируй QR-код, который ведёт на страницу.</li>
+        </ol>
+      </div>
+
+      <div class="preview-box">
+        <strong>Подсказки:</strong>
+        <ul style="margin:8px 0;padding-left:18px">
+          <li>Рекомендуемый размер картинок: ~800×800 — 1600×1600 px</li>
+          <li>Поддерживаются форматы JPG/PNG/WebP</li>
+          <li>На iOS может потребоваться разрешение на доступ к датчику движения — нажми <em>Включить доступ к датчику движения</em></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <footer>Сделано с любовью — просто загрузите папку на статический хостинг и разошлите QR.</footer>
+  </div>
+
+  <script>
+    // --- CONFIG: если поменяешь имена картинок, укажи количество ---
+    const IMAGES_COUNT = 20; // <- Укажи, сколько у тебя картинок (img1..imgN)
+    const IMAGE_PREFIX = 'images/img'; // final becomes images/img1.jpg etc
+    const IMAGE_EXT = '.jpg'; // .jpg or .png or .webp as you prefer
+    // ------------------------------------------------------------
+
+    const globe = document.getElementById('globe');
+    const mainImage = document.getElementById('mainImage');
+    const snowLayer = document.getElementById('snowLayer');
+    const shakeBtn = document.getElementById('shakeBtn');
+    const allowMotion = document.getElementById('allowMotion');
+
+    let lastShown = -1;
+    let isBusy = false;
+
+    // Utility: pick a random image index not equal to lastShown (prefer different)
+    function pickRandomIndex(){
+      if(IMAGES_COUNT <= 1) return 1;
+      let idx;
+      let attempts = 0;
+      do{ idx = Math.floor(Math.random()*IMAGES_COUNT)+1; attempts++; } while(idx===lastShown && attempts<6);
+      lastShown = idx;
+      return idx;
+    }
+
+    function showRandomImage(){
+      const idx = pickRandomIndex();
+      const url = IMAGE_PREFIX + idx + IMAGE_EXT;
+      // preload
+      const img = new Image();
+      img.onload = ()=>{
+        mainImage.src = url;
+        mainImage.style.opacity = 1;
+        mainImage.style.transform = 'scale(1)';
+      };
+      img.onerror = ()=>{
+        // in case image missing, show placeholder and console log
+        mainImage.src = 'images/placeholder.png';
+        mainImage.style.opacity = 1;
+        console.warn('Не удалось загрузить', url);
+      };
+      img.src = url;
+    }
+
+    // Snow generator
+    function createSnow(count = 30){
+      snowLayer.innerHTML = '';
+      for(let i=0;i<count;i++){
+        const f = document.createElement('div');
+        f.className = 'flake';
+        const size = Math.random()*6 + 3; // px
+        f.style.width = size + 'px'; f.style.height = size + 'px';
+        f.style.left = Math.random()*100 + '%';
+        f.style.opacity = 0.6 + Math.random()*0.4;
+        f.style.background = 'white';
+        f.style.setProperty('--dur', (4 + Math.random()*3) + 's');
+        f.style.transform = `translateY(-10vh) translateX(0)`;
+        snowLayer.appendChild(f);
+      }
+    }
+
+    // Trigger animation: shaking + snow + image reveal
+    function triggerEffect(){
+      if(isBusy) return; isBusy = true;
+      // reset image opacity for nice fade-in
+      mainImage.style.opacity = 0; mainImage.style.transform='scale(.96) translateY(4px)';
+
+      globe.classList.add('shaking');
+      createSnow(36);
+      // show random image after 600ms
+      setTimeout(()=>{
+        showRandomImage();
+      }, 600);
+      // stop shaking and clear snow after 1800ms
+      setTimeout(()=>{
+        globe.classList.remove('shaking');
+        snowLayer.innerHTML = '';
+        isBusy = false;
+      }, 2200);
+    }
+
+    // fallback: click / tap globe
+    globe.addEventListener('click', ()=>{ triggerEffect(); });
+    shakeBtn.addEventListener('click', ()=>{ triggerEffect(); });
+
+    // Motion / shake detection for mobile
+    let lastX=null, lastY=null, lastZ=null;
+    let shakeThreshold = 18; // tweak sensitivity
+    function handleMotion(e){
+      const a = e.accelerationIncludingGravity || e.acceleration || {x:0,y:0,z:0};
+      const x = a.x || 0; const y = a.y || 0; const z = a.z || 0;
+      if(lastX===null){ lastX=x; lastY=y; lastZ=z; return; }
+      const dx = Math.abs(x-lastX), dy = Math.abs(y-lastY), dz = Math.abs(z-lastZ);
+      lastX=x; lastY=y; lastZ=z;
+      if((dx+dy+dz) > shakeThreshold){ triggerEffect(); }
+    }
+
+    // Permission request (iOS 13+)
+    allowMotion.addEventListener('click', async ()=>{
+      if(typeof(DeviceMotionEvent) !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+        try{
+          const resp = await DeviceMotionEvent.requestPermission();
+          if(resp === 'granted'){
+            window.addEventListener('devicemotion', handleMotion);
+            allowMotion.style.display = 'none';
+            alert('Доступ к датчику движения включен — теперь можно потрясти телефон.');
+          } else {
+            alert('Доступ к датчику движения не разрешён. Используйте кнопку Потрясти.');
+          }
+        }catch(err){ console.warn(err); alert('Не удалось запросить разрешение.'); }
+      } else {
+        // desktop or older devices
+        window.addEventListener('devicemotion', handleMotion);
+        allowMotion.style.display = 'none';
+        alert('Датчик движения доступен (если поддерживается). Попробуйте потрясти устройство.');
+      }
+    });
+
+    // Also try to auto-bind devicemotion on supporting browsers (won't work on iOS without permission)
+    try{ window.addEventListener('devicemotion', handleMotion); }catch(e){}
+
+    // Init placeholder
+    document.addEventListener('DOMContentLoaded', ()=>{
+      mainImage.src = 'images/placeholder.png';
+      mainImage.style.opacity = 1;
+    });
+
+    // keyboard accessibility: Enter/Space triggers
+    globe.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter' || ev.key===' ') { ev.preventDefault(); triggerEffect(); } });
+
+  </script>
+</body>
+</html>
