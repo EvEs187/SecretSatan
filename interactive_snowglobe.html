@@ -1,21 +1,3 @@
-<!--
-Interactive Snow-Globe — single-file HTML
-How to use:
-1) Put this file and a folder named "images" together (same directory).
-2) Add your pictures into ./images named img1.jpg, img2.jpg, ... imgN.jpg (any extension .jpg/.png allowed).
-   - Make sure you update the IMAGES_COUNT constant in the script tag below if you use a different number.
-3) Host the folder (index file) on GitHub Pages / Netlify / Vercel or any static hosting.
-4) Point a QR-code to the hosted URL.
-
-Notes:
-- Mobile: shake detection uses DeviceMotionEvent; user may be prompted to allow motion access on iOS.
-- Fallback: tap the globe to trigger effect.
-- To change texts, colors or globe artwork, edit the CSS/HTML within.
-
----
-Developed for a "Secret Santa" interactive postcard: shake phone (or tap) -> snow animation + random image from images/ appears.
--->
-
 <!doctype html>
 <html lang="ru">
 <head>
@@ -26,7 +8,6 @@ Developed for a "Secret Santa" interactive postcard: shake phone (or tap) -> sno
     :root{
       --bg: #071228;
       --card: linear-gradient(180deg,#0b2b4a 0%, #07203a 100%);
-      --accent: #ffd166;
       --glass-size: min(78vmin,420px);
       --snow-size: calc(var(--glass-size) * 0.98);
       font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -39,19 +20,21 @@ Developed for a "Secret Santa" interactive postcard: shake phone (or tap) -> sno
       padding:24px;box-sizing:border-box;
     }
 
+    /* layout: single column (removed right-panel) */
     .wrap{
-      width:100%;max-width:980px;display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start;
+      width:100%;max-width:980px;display:block;
     }
 
     .card{
       background:var(--card);border-radius:16px;padding:24px;box-shadow:0 8px 30px rgba(2,8,23,0.6);min-height:420px;
+      display:flex;flex-direction:column;align-items:center;
     }
 
     h1{margin:0 0 12px 0;font-size:20px}
     p.lead{margin:0 0 18px 0;opacity:0.9}
 
     /* Globe area */
-    .globe-stage{display:flex;align-items:center;justify-content:center;padding:14px}
+    .globe-stage{display:flex;align-items:center;justify-content:center;padding:14px;width:100%}
     .globe{
       width:var(--glass-size);height:var(--glass-size);position:relative;border-radius:50%;overflow:hidden;
       display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);
@@ -60,9 +43,32 @@ Developed for a "Secret Santa" interactive postcard: shake phone (or tap) -> sno
       border: 1px solid rgba(255,255,255,0.06);
     }
 
-    /* inner content where images will be shown */
-    .globe-inner{position:relative;width:88%;height:78%;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center}
-    .globe-inner img{max-width:110%;max-height:110%;object-fit:cover;display:block;transform:scale(0.96);transition:opacity .4s ease, transform .6s cubic-bezier(.2,.9,.2,1)}
+    /* inner content where images will be shown
+       we reserve an inner square that is guaranteed to fit fully inside the circle.
+       The largest axis-aligned rectangle that fits inside a circle of diameter D has max side = D / sqrt(2) (~0.707D).
+       To be safe and give some padding we use 70% (0.7) of the globe diameter.
+    */
+    .globe-inner{
+      position:relative;
+      width:70%;
+      height:70%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      /* no overflow hidden here — image will be sized to fit inside this box */
+    }
+
+    /* Ensure the image is fully visible: object-fit:contain and limit to inner box */
+    .globe-inner img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      transition:opacity .4s ease, transform .6s cubic-bezier(.2,.9,.2,1);
+      border-radius:6px; /* small rounding for nicer look inside globe */
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35) inset;
+      pointer-events:none;
+    }
 
     /* snow layer */
     .snow-layer{pointer-events:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:var(--snow-size);height:var(--snow-size);overflow:hidden}
@@ -77,15 +83,13 @@ Developed for a "Secret Santa" interactive postcard: shake phone (or tap) -> sno
     .hint{margin-top:12px;font-size:13px;opacity:.9}
     .controls{display:flex;gap:8px;margin-top:14px}
     .btn{background:transparent;border:1px solid rgba(255,255,255,0.08);padding:8px 12px;border-radius:10px;color:inherit;cursor:pointer}
-    .right-panel{display:flex;flex-direction:column;gap:12px}
-    .preview-box{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:12px}
 
-    footer{grid-column:1/-1;margin-top:12px;color:rgba(230,238,248,0.6);font-size:13px}
+    footer{margin-top:12px;color:rgba(230,238,248,0.6);font-size:13px;text-align:center}
 
-    /* responsive */
-    @media (max-width:900px){
-      .wrap{grid-template-columns:1fr;}
-      .right-panel{order:-1}
+    /* responsive tweaks */
+    @media (max-width:520px){
+      :root{ --glass-size: min(86vmin,360px); }
+      .globe-inner{ width:74%; height:74%; }
     }
   </style>
 </head>
@@ -103,7 +107,6 @@ Developed for a "Secret Santa" interactive postcard: shake phone (or tap) -> sno
           </div>
 
           <div id="snowLayer" class="snow-layer" aria-hidden="true"></div>
-
         </div>
       </div>
 
@@ -113,30 +116,8 @@ Developed for a "Secret Santa" interactive postcard: shake phone (or tap) -> sno
         <button id="allowMotion" class="btn">Включить доступ к датчику движения</button>
       </div>
 
+      <footer>Сделано с любовью — просто загрузите папку на статический хостинг и разошлите QR.</footer>
     </div>
-
-    <div class="right-panel">
-      <div class="preview-box">
-        <strong>Инструкция (для тебя, создавшего):</strong>
-        <ol style="padding-left:18px;margin:8px 0">
-          <li>Создай папку <code>images</code> рядом с этим файлом и положи туда картинки: <code>img1.jpg</code>, <code>img2.jpg</code> ...</li>
-          <li>Если хочешь, замени <code>placeholder.png</code> — это превью пока не показано изображение.</li>
-          <li>Загрузи на GitHub Pages / Netlify / Vercel — ссылка будет рабочей. Сгенерируй QR-код, который ведёт на страницу.</li>
-        </ol>
-      </div>
-
-      <div class="preview-box">
-        <strong>Подсказки:</strong>
-        <ul style="margin:8px 0;padding-left:18px">
-          <li>Рекомендуемый размер картинок: ~800×800 — 1600×1600 px</li>
-          <li>Поддерживаются форматы JPG/PNG/WebP</li>
-          <li>На iOS может потребоваться разрешение на доступ к датчику движения — нажми <em>Включить доступ к датчику движения</em></li>
-        </ul>
-      </div>
-
-    </div>
-
-    <footer>Сделано с любовью — просто загрузите папку на статический хостинг и разошлите QR.</footer>
   </div>
 
   <script>
