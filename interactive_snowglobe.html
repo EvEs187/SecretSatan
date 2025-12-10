@@ -8,15 +8,29 @@
     body {
         background: #0d1b2a;
         display: flex;
-        justify-content: center;
+        flex-direction: column;
+        justify-content: flex-start;
         align-items: center;
         height: 100vh;
         margin: 0;
+        padding-top: 40px;
         overflow: hidden;
         font-family: sans-serif;
+        text-align: center;
+        color: #ffffff;
+    }
+
+    h1 {
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+        padding: 0 20px;
+        line-height: 1.35;
+        text-shadow: 0 0 8px rgba(255,255,255,0.4);
     }
 
     .globe-container {
+        margin-top: 25px;
         position: relative;
         width: 320px;
         height: 320px;
@@ -63,16 +77,21 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 95%;          /* увеличено, чтобы картинка была больше */
+        width: 95%;
         height: 95%;
         transform: translate(-50%, -50%);
-        object-fit: contain;   /* картинка полностью помещается */
-        border-radius: 0;      /* убрали скругления, чтобы ничего не обрезалось */
-        pointer-events: none;  /* чтобы клик проходил сквозь картинку */
+        object-fit: contain;
+        border-radius: 0;
+        pointer-events: none;
     }
 </style>
 </head>
 <body>
+
+<h1>
+    Твой мем-таро с предсказаниями на каждый день.<br>
+    Счастливого и смешного 2026 года!
+</h1>
 
 <div class="globe-container" id="globe">
     <img id="displayImage" class="image-display" src="">
