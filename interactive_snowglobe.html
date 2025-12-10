@@ -8,29 +8,15 @@
     body {
         background: #0d1b2a;
         display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
+        justify-content: center;
         align-items: center;
         height: 100vh;
         margin: 0;
-        padding-top: 40px;
         overflow: hidden;
         font-family: sans-serif;
-        text-align: center;
-        color: #ffffff;
-    }
-
-    h1 {
-        font-size: 22px;
-        font-weight: 700;
-        margin: 0;
-        padding: 0 20px;
-        line-height: 1.35;
-        text-shadow: 0 0 8px rgba(255,255,255,0.4);
     }
 
     .globe-container {
-        margin-top: 25px;
         position: relative;
         width: 320px;
         height: 320px;
@@ -77,27 +63,22 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 95%;
-        height: 95%;
+        width: 85%;
+        height: 85%;
         transform: translate(-50%, -50%);
         object-fit: contain;
-        border-radius: 0;
-        pointer-events: none;
+        border-radius: 10px;
     }
 </style>
 </head>
 <body>
-
-<h1>
-    Твой мем-таро с предсказаниями на каждый день.<br>
-    Счастливого и смешного 2026 года!
-</h1>
 
 <div class="globe-container" id="globe">
     <img id="displayImage" class="image-display" src="">
 </div>
 
 <script>
+    // Загруженные картинки: просто положи файлы в папку /images/
     const images = [
         "images/img1.jpg",
         "images/img2.jpg",
@@ -109,6 +90,7 @@
     const globe = document.getElementById("globe");
     const displayImage = document.getElementById("displayImage");
 
+    // Функция тряски шара
     function shakeGlobe() {
         globe.classList.add("shake");
 
@@ -116,9 +98,11 @@
             globe.classList.remove("shake");
         }, 400);
 
+        // Рандомная картинка
         const randomImg = images[Math.floor(Math.random() * images.length)];
         displayImage.src = randomImg;
 
+        // Снег
         for (let i = 0; i < 40; i++) {
             const snow = document.createElement("div");
             snow.classList.add("snow");
